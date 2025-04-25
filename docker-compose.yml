@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # MongoDB Service
+  mongodb:
+    image: mongo:latest
+    container_name: flipkart-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    networks:
+      - flipkart-network
+
+  # Backend Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flipkart-backend
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - DB_URI=mongodb://admin:password@mongodb:27017/flipkart?authSource=admin
+      - JWT_SECRET=your_jwt_secret
+      - JWT_EXPIRE=7d
+      - COOKIE_EXPIRE=7
+      - SENDGRID_API_KEY=your_sendgrid_api_key
+      - CLOUDINARY_NAME=your_cloudinary_name
+      - CLOUDINARY_API_KEY=your_cloudinary_api_key
+      - CLOUDINARY_API_SECRET=your_cloudinary_secret
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      - mongodb
+    networks:
+      - flipkart-network
+
+  # Frontend Service (Development)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: flipkart-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - REACT_APP_API_URL=http://localhost:4000
+    depends_on:
+      - backend
+    networks:
+      - flipkart-network
+
+networks:
+  flipkart-network:
+    driver: bridge
+
+volumes:
+  mongodb_data: 
